@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:5.7 
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_DATABASE=dreem-project
+      - MYSQL_USER=root
+      - MYSQL_ALLOW_EMPTY_PASSWORD=no
+    volumes:
+      # Contains the databases.
+      - db-data:/var/lib/mysql
+    ports:
+      # Shared for build purposes (see the Makefile).
+      - 3306:3306
+
+  api:
+    build:
+      context: DreemProject
+      dockerfile: Dockerfile-api
+    image: api:dev
+    environment:
+      - PYTHONUNBUFFERED=0
+    depends_on:
+      - db
+    volumes:
+      - ./DreemProject:/var/api
+      - ./wait-for.sh:/usr/local/bin/wait-for
+    working_dir: /var/api
+    command: wait-for db:3306 -t 30 -- python manage.py runserver 0:8000
+    ports:
+      - 8000:8000
+
+  collector:
+    build:
+      context: DreemProject
+      dockerfile: Dockerfile-collector
+    image: collector:dev
+    depends_on:
+      - db
+    volumes:
+      - ./DreemProject:/var/api
+      - ./dropzone:/var/records
+      - ./run.sh:/usr/local/bin/collect-records
+      - ./wait-for.sh:/usr/local/bin/wait-for
+    working_dir: /var/api
+    command: wait-for db:3306 -t 30 -- collect-records 
+
+volumes:
+  db-data:

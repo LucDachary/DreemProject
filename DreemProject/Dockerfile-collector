@@ -1,0 +1,8 @@
+FROM api:dev
+
+RUN apk add --update-cache \
+	--repository http://dl-3.alpinelinux.org/alpine/edge/testing/ \
+	--allow-untrusted \
+	hdf5-dev
+
+RUN pip install h5py
